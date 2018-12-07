@@ -306,7 +306,7 @@ static const enum_val_t l2tpv3_cookies[] = {
 };
 
 #define L2TPv3_COOKIE_DEFAULT       0
-#define L2TPv3_PROTOCOL_DEFAULT     L2TPv3_PROTOCOL_CHDLC
+#define L2TPv3_PROTOCOL_DEFAULT     L2TPv3_PROTOCOL_ETH
 
 #define L2TPv3_L2_SPECIFIC_NONE         0
 #define L2TPv3_L2_SPECIFIC_DEFAULT      1
@@ -957,6 +957,7 @@ static const true_false_string tfs_new_existing = { "New", "Existing" };
 
 static dissector_handle_t ppp_hdlc_handle;
 static dissector_handle_t ppp_lcp_options_handle;
+static dissector_handle_t ethertype_handle;
 
 static dissector_handle_t atm_oam_handle;
 static dissector_handle_t llc_handle;
@@ -3113,7 +3114,7 @@ dissect_l2tp_udp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *data
         /* If we have data, signified by having a length bit, dissect it */
         if (tvb_offset_exists(tvb, idx)) {
             next_tvb = tvb_new_subset_remaining(tvb, idx);
-            call_dissector(ppp_hdlc_handle, next_tvb, pinfo, tree);
+            call_dissector(ethertype_handle, next_tvb, pinfo, tree);
         }
         return tvb_reported_length(tvb);
     }
@@ -3790,6 +3791,11 @@ proto_reg_handoff_l2tp(void)
      */
     ppp_hdlc_handle = find_dissector_add_dependency("ppp_hdlc", proto_l2tp);
     ppp_lcp_options_handle = find_dissector_add_dependency("ppp_lcp_options", proto_l2tp);
+
+    /*
+     * Get a handle for the Ethernet-framing dissector.
+     */
+    ethertype_handle = find_dissector_add_dependency("ethertype", proto_l2tp);
 
     /* Register vendor AVP dissector(s)*/
     dissector_add_uint("l2tp.vendor_avp", VENDOR_CABLELABS, create_dissector_handle(dissect_l2tp_vnd_cablelabs_avps, proto_l2tp));
